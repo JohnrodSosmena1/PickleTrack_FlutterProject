@@ -1,0 +1,121 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isCoach() {
+      return isAuthenticated() && getUserData().role == 'coach';
+    }
+
+    function isPlayer() {
+      return isAuthenticated() && getUserData().role == 'player';
+    }
+
+    // 1. Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && request.resource.data.role in ['player', 'coach'];
+      allow update: if isOwner(userId) && request.resource.data.role == resource.data.role;
+      allow delete: if false; // User accounts are preserved
+    }
+
+    // 2. Coaching Rooms
+    match /coachingRooms/{roomId} {
+      allow read: if isAuthenticated() && (
+        resource.data.coachId == request.auth.uid ||
+        resource.data.playerId == request.auth.uid
+      );
+      allow create: if isAuthenticated() && request.resource.data.coachId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.coachId == request.auth.uid;
+      allow delete: if false; // Archived rooms cannot be deleted
+    }
+
+    // 3. Invitations
+    match /invitations/{invitationId} {
+      allow read: if isAuthenticated() && (
+        resource.data.coachId == request.auth.uid ||
+        resource.data.playerId == request.auth.uid ||
+        resource.data.playerEmail == request.auth.token.email
+      );
+      allow create: if isAuthenticated() && request.resource.data.coachId == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        resource.data.coachId == request.auth.uid ||
+        resource.data.playerId == request.auth.uid
+      );
+      allow delete: if isAuthenticated() && resource.data.coachId == request.auth.uid;
+    }
+
+    // 4. Evaluations (Coach-only write, participant read)
+    match /evaluations/{evalId} {
+      allow read: if isAuthenticated() && (
+        resource.data.coachId == request.auth.uid ||
+        resource.data.playerId == request.auth.uid
+      );
+      allow create: if isAuthenticated() && request.resource.data.coachId == request.auth.uid;
+      allow update: if isAuthenticated() && resource.data.coachId == request.auth.uid;
+      allow delete: if false;
+    }
+
+    // 5. Training Programs & Drill Assignments
+    match /trainingPrograms/{programId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isCoach();
+    }
+
+    match /drillAssignments/{assignmentId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isCoach();
+    }
+
+    // 6. Drill Library
+    match /drills/{drillId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isCoach();
+      allow update, delete: if isAuthenticated() && resource.data.creatorId == request.auth.uid;
+    }
+
+    // 7. Training Sessions & Drill Results
+    match /trainingSessions/{sessionId} {
+      allow read: if isAuthenticated() && (
+        resource.data.coachId == request.auth.uid ||
+        resource.data.playerId == request.auth.uid
+      );
+      allow create, update: if isAuthenticated() && request.resource.data.coachId == request.auth.uid;
+      allow delete: if false;
+    }
+
+    match /drillResults/{resultId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && isCoach();
+    }
+
+    // 8. Coach Feedback
+    match /feedback/{feedbackId} {
+      allow read: if isAuthenticated() && (
+        resource.data.coachId == request.auth.uid ||
+        resource.data.playerId == request.auth.uid
+      );
+      allow create: if isAuthenticated() && request.resource.data.coachId == request.auth.uid;
+      allow update, delete: if false; // Players and coaches preserve official messages
+    }
+
+    // 9. Activities
+    match /activities/{activityId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+  }
+}
