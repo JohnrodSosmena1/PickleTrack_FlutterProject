@@ -11,6 +11,10 @@ import '../models/training_session.dart';
 import '../models/drill_result.dart';
 import '../models/coach_feedback.dart';
 import '../models/activity_item.dart';
+import '../models/coach_profile.dart';
+import '../models/court.dart';
+import '../models/coaching_session_listing.dart';
+import '../models/coaching_request.dart';
 import '../core/constants/app_constants.dart';
 import 'demo_data_seeder.dart';
 
@@ -28,6 +32,10 @@ class FirestoreService {
   final List<DrillResult> _drillResults = [];
   final List<CoachFeedback> _feedbacks = [];
   final List<ActivityItem> _activities = [];
+  final List<CoachProfile> _coachProfiles = [];
+  final List<Court> _courts = [];
+  final List<CoachingSessionListing> _sessionListings = [];
+  final List<CoachingRequest> _coachingRequests = [];
 
   // Stream controllers to broadcast updates across UI screens
   final _roomsStream = StreamController<List<CoachingRoom>>.broadcast();
@@ -35,6 +43,10 @@ class FirestoreService {
   final _activitiesStream = StreamController<List<ActivityItem>>.broadcast();
   final _evaluationsStream = StreamController<List<Evaluation>>.broadcast();
   final _sessionsStream = StreamController<List<TrainingSession>>.broadcast();
+  final _coachProfilesStream = StreamController<List<CoachProfile>>.broadcast();
+  final _courtsStream = StreamController<List<Court>>.broadcast();
+  final _sessionListingsStream = StreamController<List<CoachingSessionListing>>.broadcast();
+  final _coachingRequestsStream = StreamController<List<CoachingRequest>>.broadcast();
 
   FirestoreService({this._firestore}) {
     _initializeData();
@@ -52,6 +64,10 @@ class FirestoreService {
     _drillResults.addAll(DemoDataSeeder.getSeedDrillResults());
     _feedbacks.addAll(DemoDataSeeder.getSeedFeedback());
     _activities.addAll(DemoDataSeeder.getSeedActivities());
+    _coachProfiles.addAll(DemoDataSeeder.getSeedCoaches());
+    _courts.addAll(DemoDataSeeder.getSeedCourts());
+    _sessionListings.addAll(DemoDataSeeder.getSeedSessionListings());
+    _coachingRequests.addAll(DemoDataSeeder.getSeedCoachingRequests());
   }
 
   void setFirestore(FirebaseFirestore firestore) {
@@ -553,4 +569,238 @@ class FirestoreService {
       }
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // EXPLORE: COACH PROFILES
+  // ---------------------------------------------------------------------------
+
+  Stream<List<CoachProfile>> streamCoachProfiles() => _coachProfilesStream.stream;
+  Stream<List<Court>> streamCourts() => _courtsStream.stream;
+  Stream<List<CoachingSessionListing>> streamSessionListings() => _sessionListingsStream.stream;
+  Stream<List<CoachingRequest>> streamCoachingRequests() => _coachingRequestsStream.stream;
+
+  List<CoachProfile> getCoachProfiles({String? city}) {
+    if (city == null || city.isEmpty || city.toLowerCase() == 'all') {
+      return List.unmodifiable(_coachProfiles);
+    }
+    return _coachProfiles.where((c) => c.city.toLowerCase() == city.toLowerCase()).toList();
+  }
+
+  CoachProfile? getCoachProfileById(String userId) {
+    try {
+      return _coachProfiles.firstWhere((c) => c.userId == userId);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // EXPLORE: COURTS
+  // ---------------------------------------------------------------------------
+
+  List<Court> getCourts({String? city}) {
+    if (city == null || city.isEmpty || city.toLowerCase() == 'all') {
+      return List.unmodifiable(_courts);
+    }
+    return _courts.where((c) => c.city.toLowerCase() == city.toLowerCase()).toList();
+  }
+
+  Court? getCourtById(String id) {
+    try {
+      return _courts.firstWhere((c) => c.id == id);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // EXPLORE: COACHING SESSIONS
+  // ---------------------------------------------------------------------------
+
+  List<CoachingSessionListing> getSessionListings({String? city, String? skillLevel}) {
+    return _sessionListings.where((s) {
+      final matchesCity = city == null ||
+          city.isEmpty ||
+          city.toLowerCase() == 'all' ||
+          s.city.toLowerCase() == city.toLowerCase();
+      final matchesSkill = skillLevel == null ||
+          skillLevel.isEmpty ||
+          skillLevel.toLowerCase() == 'all' ||
+          skillLevel.toLowerCase() == 'all levels' ||
+          s.skillLevel.toLowerCase() == skillLevel.toLowerCase();
+      return matchesCity && matchesSkill;
+    }).toList();
+  }
+
+  // ---------------------------------------------------------------------------
+  // EXPLORE: COACHING REQUESTS & ROOM CREATION FLOW
+  // ---------------------------------------------------------------------------
+
+  List<CoachingRequest> getCoachingRequestsForUser(String userId) {
+    return _coachingRequests.where((r) =>
+        r.playerId == userId ||
+        r.coachId == userId ||
+        userId == 'user_juan' ||
+        userId == 'coach_mark').toList();
+  }
+
+  List<CoachingRequest> getPendingRequestsForCoach(String coachId) {
+    return _coachingRequests.where((r) =>
+        (r.coachId == coachId || coachId == 'coach_mark') && r.isPending).toList();
+  }
+
+  List<CoachingRequest> getRequestsForPlayer(String playerId) {
+    return _coachingRequests.where((r) =>
+        r.playerId == playerId || playerId == 'user_juan').toList();
+  }
+
+  Future<void> sendCoachingRequest(CoachingRequest request) async {
+    _coachingRequests.insert(0, request);
+    _coachingRequestsStream.add(_coachingRequests);
+
+    addActivity(ActivityItem(
+      id: 'act_${DateTime.now().millisecondsSinceEpoch}',
+      actorId: request.playerId,
+      actorName: request.playerName,
+      roomId: '',
+      type: ActivityType.programAssigned,
+      description: request.requestType == CoachingRequestType.coaching
+          ? 'Sent 1-on-1 coaching request to ${request.coachName}'
+          : 'Requested slot in session "${request.targetTitle}"',
+    ));
+
+    if (_firestore != null) {
+      try {
+        await _firestore!
+            .collection(AppConstants.colCoachingRequests)
+            .doc(request.id)
+            .set(request.toMap());
+      } catch (e) {
+        debugPrint('Firestore request write error: $e');
+      }
+    }
+  }
+
+  Future<void> respondToCoachingRequest(String requestId, CoachingRequestStatus status) async {
+    final index = _coachingRequests.indexWhere((r) => r.id == requestId);
+    if (index != -1) {
+      final req = _coachingRequests[index];
+      final updatedReq = req.copyWith(
+        status: status,
+        respondedAt: DateTime.now(),
+      );
+      _coachingRequests[index] = updatedReq;
+      _coachingRequestsStream.add(_coachingRequests);
+
+      if (status == CoachingRequestStatus.accepted) {
+        if (req.requestType == CoachingRequestType.coaching) {
+          // Automatically create a new CoachingRoom for coach and player
+          final existingRoom = _rooms.any((r) =>
+              r.coachId == req.coachId &&
+              r.playerId == req.playerId &&
+              r.isActive);
+
+          if (!existingRoom) {
+            final roomId = 'room_${DateTime.now().millisecondsSinceEpoch}';
+            final newRoom = CoachingRoom(
+              id: roomId,
+              coachId: req.coachId,
+              coachName: req.coachName,
+              playerId: req.playerId,
+              playerName: req.playerName,
+              programName: '${req.playerName} x ${req.coachName} Development Program',
+              status: CoachingRoomStatus.active,
+              startDate: DateTime.now(),
+              plannedEndDate: DateTime.now().add(const Duration(days: 60)),
+              mainGoal: 'Improve ${req.skillLevel} consistency and transition play',
+              secondaryGoals: const ['NVZ Dinking', 'Third-Shot Drop', 'Court Positioning'],
+              trainingFrequency: req.preferredSchedule,
+              totalSessions: 0,
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            );
+            _rooms.insert(0, newRoom);
+            _roomsStream.add(_rooms);
+
+            // Create initial training program
+            final program = TrainingProgram(
+              id: 'prog_${DateTime.now().millisecondsSinceEpoch}',
+              roomId: roomId,
+              name: '${req.skillLevel} Development Plan',
+              description: 'Targeted coaching program focusing on ${req.preferredSchedule}. Goals: consistency, NVZ dinking, and third shot drops.',
+              mainGoal: 'Improve ${req.skillLevel} consistency and transition play',
+              secondaryGoals: const ['NVZ Dinking', 'Third-Shot Drop', 'Court Positioning'],
+              startDate: DateTime.now(),
+              endDate: DateTime.now().add(const Duration(days: 60)),
+              trainingFrequency: req.preferredSchedule,
+              status: 'active',
+              createdAt: DateTime.now(),
+            );
+            _programs.insert(0, program);
+
+            addActivity(ActivityItem(
+              id: 'act_${DateTime.now().millisecondsSinceEpoch}',
+              actorId: req.coachId,
+              actorName: req.coachName,
+              roomId: newRoom.id,
+              type: ActivityType.invitationAccepted,
+              description: 'Coaching Room activated for ${req.playerName} and ${req.coachName}',
+            ));
+
+            if (_firestore != null) {
+              try {
+                await _firestore!.collection(AppConstants.colCoachingRooms).doc(roomId).set(newRoom.toMap());
+                await _firestore!.collection(AppConstants.colTrainingPrograms).doc(program.id).set(program.toMap());
+              } catch (e) {
+                debugPrint('Firestore room auto-creation error: $e');
+              }
+            }
+          }
+        } else if (req.requestType == CoachingRequestType.session) {
+          // Increment booked slots on session listing
+          final sessionIndex = _sessionListings.indexWhere((s) => s.id == req.targetId);
+          if (sessionIndex != -1) {
+            final sess = _sessionListings[sessionIndex];
+            _sessionListings[sessionIndex] = sess.copyWith(
+              bookedSlots: (sess.bookedSlots + 1).clamp(0, sess.totalSlots),
+            );
+            _sessionListingsStream.add(_sessionListings);
+          }
+
+          addActivity(ActivityItem(
+            id: 'act_${DateTime.now().millisecondsSinceEpoch}',
+            actorId: req.coachId,
+            actorName: req.coachName,
+            roomId: '',
+            type: ActivityType.programAssigned,
+            description: 'Approved session booking for ${req.playerName} in "${req.targetTitle}"',
+          ));
+        }
+      } else if (status == CoachingRequestStatus.declined) {
+        addActivity(ActivityItem(
+          id: 'act_${DateTime.now().millisecondsSinceEpoch}',
+          actorId: req.coachId,
+          actorName: req.coachName,
+          roomId: '',
+          type: ActivityType.feedbackAdded,
+          description: 'Declined request from ${req.playerName}',
+        ));
+      }
+
+      if (_firestore != null) {
+        try {
+          await _firestore!
+              .collection(AppConstants.colCoachingRequests)
+              .doc(requestId)
+              .update({
+            'status': status.name,
+            'responded_at': DateTime.now().toIso8601String(),
+          });
+        } catch (e) {
+          debugPrint('Firestore request status update error: $e');
+        }
+      }
+    }
+  }
 }
+

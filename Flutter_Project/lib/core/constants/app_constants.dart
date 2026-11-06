@@ -20,6 +20,9 @@ class AppConstants {
   static const String colDrillResults = 'drillResults';
   static const String colFeedback = 'feedback';
   static const String colActivities = 'activities';
+  static const String colCourts = 'courts';
+  static const String colCoachingSessionListings = 'coachingSessionListings';
+  static const String colCoachingRequests = 'coachingRequests';
 }
 
 /// User roles

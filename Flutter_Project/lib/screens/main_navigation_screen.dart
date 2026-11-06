@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
 import 'home/home_screen.dart';
 import 'rooms/rooms_screen.dart';
-import 'training/training_screen.dart';
+import 'explore/explore_screen.dart';
 import 'progress/progress_screen.dart';
 import 'profile/profile_screen.dart';
 
@@ -24,7 +24,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   final List<Widget> _screens = const [
     HomeScreen(),
     RoomsScreen(),
-    TrainingScreen(),
+    ExploreScreen(),
     ProgressScreen(),
     ProfileScreen(),
   ];
@@ -38,7 +38,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   static const List<_NavItem> _navItems = [
     _NavItem(icon: Icons.home_outlined, selectedIcon: Icons.home_rounded, label: 'Home'),
     _NavItem(icon: Icons.meeting_room_outlined, selectedIcon: Icons.meeting_room_rounded, label: 'Rooms'),
-    _NavItem(icon: Icons.fitness_center_outlined, selectedIcon: Icons.fitness_center_rounded, label: 'Training'),
+    _NavItem(icon: Icons.explore_outlined, selectedIcon: Icons.explore_rounded, label: 'Explore'),
     _NavItem(icon: Icons.bar_chart_outlined, selectedIcon: Icons.bar_chart_rounded, label: 'Progress'),
     _NavItem(icon: Icons.person_outline_rounded, selectedIcon: Icons.person_rounded, label: 'Profile'),
   ];

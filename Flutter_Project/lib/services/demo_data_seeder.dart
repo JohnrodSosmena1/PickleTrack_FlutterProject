@@ -9,6 +9,10 @@ import '../models/training_session.dart';
 import '../models/drill_result.dart';
 import '../models/coach_feedback.dart';
 import '../models/activity_item.dart';
+import '../models/coach_profile.dart';
+import '../models/court.dart';
+import '../models/coaching_session_listing.dart';
+import '../models/coaching_request.dart';
 import '../core/constants/app_constants.dart';
 
 class DemoDataSeeder {
@@ -630,4 +634,164 @@ class DemoDataSeeder {
       ),
     ];
   }
+
+  static List<CoachProfile> getSeedCoaches() {
+    return [
+      const CoachProfile(
+        userId: 'coach_mark',
+        displayName: 'Coach Mark',
+        photoUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+        city: 'Manila',
+        yearsExperience: 6,
+        specialties: ['Dinking & NVZ', '3rd Shot Drop', 'Tournament Strategy'],
+        skillLevels: ['Beginner', 'Intermediate', 'Advanced'],
+        hourlyRate: 800.0,
+        bio: 'Certified IPTPA Level II Pickleball Instructor. Former collegiate racket athlete specializing in transition zone patience, third shot drops, and progressive tournament preparation.',
+        availableSchedule: 'Mon, Wed, Fri 6:00 PM - 9:00 PM | Sat 8:00 AM - 12:00 PM',
+        isActive: true,
+      ),
+      const CoachProfile(
+        userId: 'coach_sarah',
+        displayName: 'Coach Sarah',
+        photoUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80',
+        city: 'Davao',
+        yearsExperience: 4,
+        specialties: ['Fast Hands', 'Kitchen Resets', 'Power Drives'],
+        skillLevels: ['Beginner', 'Intermediate'],
+        hourlyRate: 650.0,
+        bio: 'PPR Certified Coach focusing on high-percentage ball control, soft-touch returns, and midcourt positioning for progressive and competitive players.',
+        availableSchedule: 'Tue, Thu 7:00 AM - 11:00 AM | Sun 3:00 PM - 7:00 PM',
+        isActive: true,
+      ),
+      const CoachProfile(
+        userId: 'coach_rico',
+        displayName: 'Coach Rico',
+        photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
+        city: 'Cebu',
+        yearsExperience: 8,
+        specialties: ['Serve Depth & Spin', 'Erne Execution', 'Defensive Resets'],
+        skillLevels: ['Intermediate', 'Advanced'],
+        hourlyRate: 900.0,
+        bio: 'National pickleball tournament finalist with over 800 hours of 1-on-1 and clinic coaching experience across the Visayas region.',
+        availableSchedule: 'Mon - Sat 7:00 AM - 12:00 PM',
+        isActive: true,
+      ),
+    ];
+  }
+
+  static List<Court> getSeedCourts() {
+    return [
+      const Court(
+        id: 'court_bgc',
+        name: 'Pickle Hub BGC',
+        city: 'Manila',
+        address: '9th Ave, Bonifacio Global City, Taguig, Metro Manila',
+        imageUrls: [],
+        courtCount: 6,
+        openingTime: '6:00 AM',
+        closingTime: '10:00 PM',
+        facilities: ['Indoor', 'Showers', 'Parking', 'Pro Shop'],
+        hourlyRate: 400.0,
+        coachIds: ['coach_mark'],
+      ),
+      const Court(
+        id: 'court_davao',
+        name: 'Davao Smash & Paddle',
+        city: 'Davao',
+        address: 'Quimpo Blvd, Ecoland, Matina, Davao City',
+        imageUrls: [],
+        courtCount: 4,
+        openingTime: '7:00 AM',
+        closingTime: '9:00 PM',
+        facilities: ['Outdoor', 'Covered', 'Showers', 'Parking'],
+        hourlyRate: 300.0,
+        coachIds: ['coach_sarah'],
+      ),
+      const Court(
+        id: 'court_cebu',
+        name: 'Cebu Racquet & Paddle Club',
+        city: 'Cebu',
+        address: 'A.S. Fortuna St, Banilad, Mandaue City, Cebu',
+        imageUrls: [],
+        courtCount: 5,
+        openingTime: '6:00 AM',
+        closingTime: '11:00 PM',
+        facilities: ['Indoor', 'Aircon Lounge', 'Pro Shop', 'Showers'],
+        hourlyRate: 450.0,
+        coachIds: ['coach_rico'],
+      ),
+    ];
+  }
+
+  static List<CoachingSessionListing> getSeedSessionListings() {
+    return [
+      CoachingSessionListing(
+        id: 'sess_list_1',
+        title: 'Kitchen Control & Dinking Masterclass',
+        coachId: 'coach_mark',
+        coachName: 'Coach Mark',
+        coachAvatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80',
+        venue: 'Pickle Hub BGC',
+        city: 'Manila',
+        dateTime: DateTime.now().add(const Duration(days: 1, hours: 4)),
+        skillLevel: 'Intermediate',
+        totalSlots: 8,
+        bookedSlots: 5,
+        price: 500.0,
+        description: 'Master unattackable soft dinks, cross-court placement, and patience in high-pressure kitchen rallies with live video feedback.',
+      ),
+      CoachingSessionListing(
+        id: 'sess_list_2',
+        title: 'Intro to Pickleball: Fundamentals & Rules',
+        coachId: 'coach_sarah',
+        coachName: 'Coach Sarah',
+        coachAvatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80',
+        venue: 'Davao Smash & Paddle',
+        city: 'Davao',
+        dateTime: DateTime.now().add(const Duration(days: 3, hours: 2)),
+        skillLevel: 'Beginner',
+        totalSlots: 6,
+        bookedSlots: 2,
+        price: 350.0,
+        description: 'Comprehensive breakdown of continental paddle grip, legal underhand serves, non-volley zone rules, and side-out scoring.',
+      ),
+      CoachingSessionListing(
+        id: 'sess_list_3',
+        title: 'Advanced 3rd Shot Drops & Transitions',
+        coachId: 'coach_rico',
+        coachName: 'Coach Rico',
+        coachAvatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80',
+        venue: 'Cebu Racquet & Paddle Club',
+        city: 'Cebu',
+        dateTime: DateTime.now().add(const Duration(days: 4, hours: 6)),
+        skillLevel: 'Advanced',
+        totalSlots: 8,
+        bookedSlots: 7,
+        price: 600.0,
+        description: 'Dial in apex trajectory, footwork stability, and midcourt neutralizers against aggressive deep drive returns.',
+      ),
+    ];
+  }
+
+  static List<CoachingRequest> getSeedCoachingRequests() {
+    return [
+      CoachingRequest(
+        id: 'req_seed_1',
+        requestType: CoachingRequestType.coaching,
+        targetId: 'coach_mark',
+        targetTitle: '1-on-1 Coaching with Coach Mark',
+        playerId: 'user_juan',
+        playerName: 'Juan Dela Cruz',
+        playerEmail: 'juan@email.com',
+        coachId: 'coach_mark',
+        coachName: 'Coach Mark',
+        preferredSchedule: 'Saturdays 9:00 AM - 11:00 AM',
+        skillLevel: 'Intermediate (3.0)',
+        message: 'Hi Coach Mark! I want to improve my 3rd shot drop consistency and prepare for an upcoming tournament.',
+        status: CoachingRequestStatus.pending,
+        createdAt: DateTime.now().subtract(const Duration(hours: 4)),
+      ),
+    ];
+  }
 }
+

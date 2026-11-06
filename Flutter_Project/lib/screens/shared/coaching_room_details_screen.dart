@@ -13,6 +13,7 @@ import 'evaluation_screen.dart';
 import 'training_program_screen.dart';
 import 'session_results_screen.dart';
 import '../coach/record_session_screen.dart';
+import 'drill_library_screen.dart';
 
 class CoachingRoomDetailsScreen extends StatefulWidget {
   final String roomId;
@@ -495,11 +496,29 @@ class _CoachingRoomDetailsScreenState extends State<CoachingRoomDetailsScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                program?.name ?? 'Training Program',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              Expanded(
+                child: Text(
+                  program?.name ?? 'Training Program',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
               ),
-              if (room.isActive)
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primaryGreen,
+                  side: const BorderSide(color: AppColors.primaryGreen, width: 1.2),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                ),
+                icon: const Icon(Icons.menu_book_rounded, size: 15),
+                label: const Text('Drill Library', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const DrillLibraryScreen()),
+                  );
+                },
+              ),
+              if (room.isActive) ...[
+                const SizedBox(width: 6),
                 IconButton(
                   icon: const Icon(Icons.add_circle_outline, color: AppColors.primaryGreen),
                   tooltip: 'Assign Drill',
@@ -511,6 +530,7 @@ class _CoachingRoomDetailsScreenState extends State<CoachingRoomDetailsScreen>
                     );
                   },
                 ),
+              ],
             ],
           ),
           const SizedBox(height: 6),

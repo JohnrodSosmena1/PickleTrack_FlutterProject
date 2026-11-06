@@ -118,12 +118,12 @@ void main() {
       // Verifies the 5 bottom navigation destinations (Mockup Screen 15)
       expect(find.text('Home'), findsOneWidget);
       expect(find.text('Rooms'), findsOneWidget);
-      expect(find.text('Training'), findsOneWidget);
+      expect(find.text('Explore'), findsOneWidget);
       expect(find.text('Progress'), findsOneWidget);
       expect(find.text('Profile'), findsOneWidget);
     });
 
-    testWidgets('Navigates across unified tabs: Rooms, Training, Progress, Profile', (WidgetTester tester) async {
+    testWidgets('Navigates across unified tabs: Rooms, Explore, Progress, Profile', (WidgetTester tester) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.resetPhysicalSize);
@@ -153,12 +153,13 @@ void main() {
       expect(find.text('Past (1)'), findsOneWidget);
       expect(find.text('Invite / New Room'), findsOneWidget);
 
-      // Tap Training tab (Mockup Screen 6)
-      await tester.tap(find.text('Training'));
+      // Tap Explore tab
+      await tester.tap(find.text('Explore'));
       await tester.pumpAndSettle();
-      expect(find.text('Training Program'), findsOneWidget);
-      expect(find.text('Assigned Weekly Drills'), findsOneWidget);
-      expect(find.text('Drill Library'), findsOneWidget);
+      expect(find.text('Coaches'), findsOneWidget);
+      expect(find.text('Courts'), findsOneWidget);
+      expect(find.text('Sessions'), findsOneWidget);
+      expect(find.text('All'), findsOneWidget);
 
       // Tap Progress tab (Mockup Screen 10)
       await tester.tap(find.text('Progress'));

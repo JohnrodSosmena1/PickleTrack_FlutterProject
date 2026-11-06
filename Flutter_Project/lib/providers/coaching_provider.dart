@@ -10,6 +10,10 @@ import '../models/training_session.dart';
 import '../models/drill_result.dart';
 import '../models/coach_feedback.dart';
 import '../models/activity_item.dart';
+import '../models/coach_profile.dart';
+import '../models/court.dart';
+import '../models/coaching_session_listing.dart';
+import '../models/coaching_request.dart';
 import '../core/constants/app_constants.dart';
 import '../services/firestore_service.dart';
 import '../services/auth_service.dart';
@@ -22,12 +26,17 @@ class CoachingProvider with ChangeNotifier {
   String _searchQuery = '';
   DrillDifficulty? _selectedDifficulty;
 
+  String _selectedCity = 'All';
+  String _selectedSessionSkill = 'All';
+
   CoachingProvider(this._firestoreService, this._authService);
 
   // Getters
   String get selectedCategory => _selectedCategory;
   String get searchQuery => _searchQuery;
   DrillDifficulty? get selectedDifficulty => _selectedDifficulty;
+  String get selectedCity => _selectedCity;
+  String get selectedSessionSkill => _selectedSessionSkill;
 
   void setDrillFilters({String? category, DrillDifficulty? difficulty, String? query}) {
     if (category != null) _selectedCategory = category;
@@ -370,4 +379,139 @@ class CoachingProvider with ChangeNotifier {
     await _firestoreService.completeCoachingRoom(roomId, notes);
     notifyListeners();
   }
+
+  // ---------------------------------------------------------
+  // EXPLORE MODULE (COACHES, COURTS, SESSIONS, REQUESTS)
+  // ---------------------------------------------------------
+
+  List<String> get availableCities {
+    final cities = <String>{'All'};
+    for (final c in _firestoreService.getCoachProfiles()) {
+      if (c.city.isNotEmpty) cities.add(c.city);
+    }
+    for (final ct in _firestoreService.getCourts()) {
+      if (ct.city.isNotEmpty) cities.add(ct.city);
+    }
+    for (final s in _firestoreService.getSessionListings()) {
+      if (s.city.isNotEmpty) cities.add(s.city);
+    }
+    return cities.toList();
+  }
+
+  void setCityFilter(String city) {
+    _selectedCity = city;
+    notifyListeners();
+  }
+
+  void setSessionSkillFilter(String skill) {
+    _selectedSessionSkill = skill;
+    notifyListeners();
+  }
+
+  List<CoachProfile> get filteredCoaches =>
+      _firestoreService.getCoachProfiles(city: _selectedCity);
+
+  List<Court> get filteredCourts =>
+      _firestoreService.getCourts(city: _selectedCity);
+
+  List<CoachingSessionListing> get filteredSessions =>
+      _firestoreService.getSessionListings(
+        city: _selectedCity,
+        skillLevel: _selectedSessionSkill,
+      );
+
+  CoachProfile? getCoachProfile(String userId) =>
+      _firestoreService.getCoachProfileById(userId);
+
+  Court? getCourt(String id) =>
+      _firestoreService.getCourtById(id);
+
+  List<CoachProfile> getCoachesForCourt(Court court) {
+    return court.coachIds
+        .map((id) => _firestoreService.getCoachProfileById(id))
+        .whereType<CoachProfile>()
+        .toList();
+  }
+
+  List<CoachingRequest> get userCoachingRequests =>
+      _firestoreService.getCoachingRequestsForUser(_currentUserId);
+
+  List<CoachingRequest> get pendingCoachRequests =>
+      _firestoreService.getPendingRequestsForCoach(_currentUserId);
+
+  int get pendingCoachRequestsCount => pendingCoachRequests.length;
+
+  List<CoachingRequest> get playerRequests =>
+      _firestoreService.getRequestsForPlayer(_currentUserId);
+
+  Future<void> sendCoachingRequest({
+    required CoachProfile coach,
+    required String preferredSchedule,
+    required String skillLevel,
+    String? message,
+  }) async {
+    final req = CoachingRequest(
+      id: 'req_${DateTime.now().millisecondsSinceEpoch}',
+      requestType: CoachingRequestType.coaching,
+      targetId: coach.userId,
+      targetTitle: '1-on-1 Coaching with ${coach.displayName}',
+      playerId: _currentUserId,
+      playerName: _currentUser?.fullName ?? 'Player',
+      playerEmail: _currentUser?.email ?? '',
+      coachId: coach.userId,
+      coachName: coach.displayName,
+      preferredSchedule: preferredSchedule,
+      skillLevel: skillLevel,
+      message: message,
+      status: CoachingRequestStatus.pending,
+      createdAt: DateTime.now(),
+    );
+
+    await _firestoreService.sendCoachingRequest(req);
+    notifyListeners();
+  }
+
+  Future<void> sendSessionBookingRequest({
+    required CoachingSessionListing session,
+    required String preferredSchedule,
+    required String skillLevel,
+    String? message,
+  }) async {
+    final req = CoachingRequest(
+      id: 'req_${DateTime.now().millisecondsSinceEpoch}',
+      requestType: CoachingRequestType.session,
+      targetId: session.id,
+      targetTitle: session.title,
+      playerId: _currentUserId,
+      playerName: _currentUser?.fullName ?? 'Player',
+      playerEmail: _currentUser?.email ?? '',
+      coachId: session.coachId,
+      coachName: session.coachName,
+      preferredSchedule: preferredSchedule,
+      skillLevel: skillLevel,
+      message: message,
+      status: CoachingRequestStatus.pending,
+      createdAt: DateTime.now(),
+    );
+
+    await _firestoreService.sendCoachingRequest(req);
+    notifyListeners();
+  }
+
+  Future<void> acceptCoachingRequest(String requestId) async {
+    await _firestoreService.respondToCoachingRequest(
+      requestId,
+      CoachingRequestStatus.accepted,
+    );
+    notifyListeners();
+  }
+
+  Future<void> declineCoachingRequest(String requestId) async {
+    await _firestoreService.respondToCoachingRequest(
+      requestId,
+      CoachingRequestStatus.declined,
+    );
+    notifyListeners();
+  }
 }
+
